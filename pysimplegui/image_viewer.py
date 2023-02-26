@@ -1,5 +1,7 @@
 import PySimpleGUI as sg
+from PIL import Image
 import os
+import shutil
 
 sg.theme("DarkAmber")
 
@@ -27,6 +29,11 @@ layout = [
 ]
 
 window = sg.Window("Image Viewer", layout)
+try:
+    if "temp" not in os.listdir(os.curdir):
+        os.mkdir('temp')
+except OSError:
+    pass
 
 while True:
     event, values = window.read()
@@ -34,7 +41,7 @@ while True:
         folder = values['-FOLDER-']
         try:
             file_list = os.listdir(folder)
-        except:
+        except OSError:
             file_list = []
         filenames = [
             f 
@@ -47,10 +54,17 @@ while True:
         try:
             filename = os.path.join(values['-FOLDER-'], values['-FILE LIST-'][0])
             window['-TOUT-'].update(filename)
-            window['-IMAGE-'].update(filename=filename)
+            with Image.open(filename) as image:
+                image.thumbnail((300, 300))
+                image.save("./temp/temp_img.png")
+            window['-IMAGE-'].update(filename="./temp/temp_img.png")
         except:
             window['-TOUT-'].Update('FILE CANT BE OPENEND OR EXISTS')
     if event == sg.WIN_CLOSED or event == 'Exit':
+        try:
+            shutil.rmtree('temp')
+        except OSError:
+            pass
         break
 
 window.close()
