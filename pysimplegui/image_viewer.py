@@ -4,6 +4,7 @@ import os
 import shutil
 
 sg.theme("DarkAmber")
+size = (400, 300)
 
 file_list_column=[
     [
@@ -16,7 +17,7 @@ file_list_column=[
     ]
 ]
 image_viewer_column = [
-    [sg.Text("choose an image on the left list")],
+    [sg.Text(text="choose an image on the left list", justification="top")],
     [sg.Text(size=(40, 1), key="-TOUT-")],
     [sg.Image(key="-IMAGE-")]
 ]
@@ -24,7 +25,7 @@ layout = [
     [
     sg.Column(file_list_column),
     sg.VSeparator(),
-    sg.Column(image_viewer_column)
+    sg.Column(image_viewer_column, element_justification="center")
     ]
 ]
 
@@ -55,7 +56,7 @@ while True:
             filename = os.path.join(values['-FOLDER-'], values['-FILE LIST-'][0])
             window['-TOUT-'].update(filename)
             with Image.open(filename) as image:
-                image.thumbnail((300, 300))
+                image.thumbnail(size=size)
                 image.save("./temp/temp_img.png")
             window['-IMAGE-'].update(filename="./temp/temp_img.png")
         except:
