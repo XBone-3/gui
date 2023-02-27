@@ -6,14 +6,15 @@ import shutil
 sg.theme("DarkAmber")
 size = (400, 300)
 
-file_list_column=[
+file_list_column = [
     [
-    sg.Text('Image Folder'),
-    sg.In(size=(25,1), enable_events=True, key="-FOLDER-"),
-    sg.FolderBrowse(button_text="Browse")
+        sg.Text('Image Folder'),
+        sg.In(size=(25, 1), enable_events=True, key="-FOLDER-"),
+        sg.FolderBrowse(button_text="Browse")
     ],
     [
-    sg.Listbox(values=[], enable_events=True, size=(45, 20), key="-FILE LIST-")
+        sg.Listbox(values=[], enable_events=True,
+                   size=(45, 20), key="-FILE LIST-")
     ]
 ]
 image_viewer_column = [
@@ -23,9 +24,9 @@ image_viewer_column = [
 ]
 layout = [
     [
-    sg.Column(file_list_column),
-    sg.VSeparator(),
-    sg.Column(image_viewer_column, element_justification="center")
+        sg.Column(file_list_column),
+        sg.VSeparator(),
+        sg.Column(image_viewer_column, element_justification="center")
     ]
 ]
 
@@ -45,15 +46,16 @@ while True:
         except OSError:
             file_list = []
         filenames = [
-            f 
-            for f in file_list 
-            if os.path.isfile(os.path.join(folder, f)) 
+            f
+            for f in file_list
+            if os.path.isfile(os.path.join(folder, f))
             and f.lower().endswith((".png", '.jpg', '.jpeg', '.gif'))
         ]
         window['-FILE LIST-'].update(filenames)
     elif event == '-FILE LIST-':
         try:
-            filename = os.path.join(values['-FOLDER-'], values['-FILE LIST-'][0])
+            filename = os.path.join(
+                values['-FOLDER-'], values['-FILE LIST-'][0])
             window['-TOUT-'].update(filename)
             with Image.open(filename) as image:
                 image.thumbnail(size=size)
