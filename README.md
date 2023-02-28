@@ -1,4 +1,4 @@
-# gui
+# GUI
 GRAPHICAL USER INTERFACE
 
 ## computer vision
