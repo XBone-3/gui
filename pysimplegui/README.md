@@ -11,14 +11,15 @@ some small daily applications implimented using this **PySimpleGUI** module
 ## image viewer
 
 - required modules: shutil, pillow
-- run command **linux** : python3 -m image_viewer.py
-- run command **windows** : py image_viewer.py
+  - **linux** : python3 -m image_viewer.py
+  - **windows** : py image_viewer.py
 
 ## music player
 
 - required modules: pygame
-- run command **linux** : python3 -m music_player.py
-- run command **windows** : py music_player.py
+- run command
+  - **linux** : python3 -m music_player.py
+  - **windows** : py music_player.py
 
 ## pysimplegui
 
