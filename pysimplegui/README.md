@@ -5,8 +5,8 @@ some small daily applications implimented using this **PySimpleGUI** module
 ## computer vision
 
 - required modules: openCV2, numpy
-- run command **linux** : python3 -m computer_vision.py
-- run command **windows** : py computer_vision.py
+  - **linux** : python3 -m computer_vision.py
+  - **windows** : py computer_vision.py
 
 ## image viewer
 
