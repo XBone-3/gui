@@ -1,6 +1,6 @@
 import os
 import PySimpleGUI as sg
-from pygame import mixer
+from pygame import mixer, error
 import time
 
 music_dict = {}
@@ -30,7 +30,7 @@ def layouts():
                     size=(40, 20), key='-FILE LIST-')]
     ]
     music_player_column = [
-        [sg.Text('Choose a song from the list to play',
+        [sg.Text('Choose a song from the list to play or press start to start a random song',
                  justification='center', auto_size_text=True)],
         [sg.Text('', size=(20, 2), auto_size_text=True,
                  justification='center', key='-TOUT-')],
@@ -49,10 +49,12 @@ def layouts():
                 orientation='v',
                 key='slider t'
             ),
-            sg.Button(button_text='Pause', auto_size_button=True,
+            sg.Button(button_text='Start', auto_size_button=True,
                       key='-PAUSE-', enable_events=True),
             sg.Button(button_text='Stop', auto_size_button=True,
                       enable_events=True, key='-STOP-'),
+            sg.Button(button_text='Restart', auto_size_button=True,
+                      enable_events=True, key='-RESTART-'),
             sg.Slider(
                 range=(0, 10),
                 default_value=5,
@@ -87,6 +89,7 @@ def main():
             music_list(folder_path)
             window['-FILE LIST-'].update(music_files)
             window['-TOUT-'].update(f'{len(music_files)} songs found')
+
         if event == '-FILE LIST-':
             song = values['-FILE LIST-'][0]
             window['-TOUT-'].update(song)
@@ -100,10 +103,7 @@ def main():
             progress_bar.update(0, int(song_length))
             play = True
             i = 0
-        if mixer.music.get_busy():
-            progress_bar.UpdateBar(i)
-            i += 1
-            time.sleep(1)
+         
         if event == '-PAUSE-':
             if play:
                 mixer.music.pause()
@@ -117,6 +117,19 @@ def main():
         if event == '-STOP-':
             progress_bar.UpdateBar(0)
             mixer.music.stop()
+
+        if event == '-RESTART-':
+            try:
+                mixer.music.play()
+                i = 0
+                progress_bar.UpdateBar(i)
+            except error:
+                window['-TOUT-'].update('load music library first.')
+
+        if mixer.music.get_busy():
+            progress_bar.UpdateBar(i)
+            i += 1
+            time.sleep(1)
 
     window.close()
 
