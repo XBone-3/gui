@@ -11,14 +11,14 @@ file_list = '-FILE_LIST-'
 pause = '-PAUSE-'
 thread_event = Event()
 
-def music_list(folder_path):
+def list_music_files(folder_path):
     items = os.listdir(folder_path)
     if folder_path not in music_dict.keys():
         music_dict[folder_path] = []
     for item in items:
         destination = os.path.join(folder_path, item)
         if os.path.isdir(destination):
-            music_list(destination)
+            list_music_files(destination)
         elif item.lower().endswith(('.mp3')) and (item not in music_files):
             music_files.append(item)
             music_dict[folder_path].append(item)
@@ -82,7 +82,7 @@ def layouts():
 def load_files(window, event, values):
     if event == '-PATH-':
         folder_path = values['-PATH-']
-        music_list(folder_path)
+        list_music_files(folder_path)
         window[file_list].update(music_files)
         window['-TOUT-'].update(f'{len(music_files)} songs found')
 
@@ -96,15 +96,15 @@ def progressbar_update(progress_bar):
 def search_song(window, event, values):
     if event == 'search':
         search_str = values['search']
-        new_music_list = [song for song in music_files if search_str.lower() in song.lower()]
-        window[file_list].update(new_music_list)
+        new_list_music_files = [song for song in music_files if search_str.lower() in song.lower()]
+        window[file_list].update(new_list_music_files)
 
 def volume_setter(event, values):
     if event == 'volume':
         volume = values['volume']
         mixer.music.set_volume(volume/100)
 
-def pause_play_stop(window, event, progress_bar):
+def pause_play_stop(window, event):
     if event == pause:
         if mixer.music.get_busy():
             mixer.music.pause()
@@ -115,6 +115,12 @@ def pause_play_stop(window, event, progress_bar):
 
     if event == '-STOP-' and mixer.music.get_busy():
         mixer.music.stop()
+    
+    if event == '-RESTART-':
+        try:
+            mixer.music.play()
+        except (error, UnboundLocalError):
+            window['song name'].update(play_music)
 
 def song_mixer(song):
     song_details = [(key, song) for key, value in music_dict.items() if song in value]
@@ -155,13 +161,7 @@ def player_loop(window):
                 pass
         
         volume_setter(event, values)
-        pause_play_stop(window, event, progress_bar)
-
-        if event == '-RESTART-':
-            try:
-                mixer.music.play()
-            except (error, UnboundLocalError):
-                window['song name'].update(play_music)
+        pause_play_stop(window, event)
         
         shuffle(window, event, values)
                 
