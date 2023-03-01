@@ -1,7 +1,6 @@
-import os
+import os, random, time
 import PySimpleGUI as sg
 from pygame import mixer, error
-import time
 from threading import Thread, Event
 
 music_dict = dict()
@@ -20,10 +19,9 @@ def music_list(folder_path):
         destination = os.path.join(folder_path, item)
         if os.path.isdir(destination):
             music_list(destination)
-        elif item.lower().endswith(('.mp3')):
-            if item not in music_files:
-                music_files.append(item)
-                music_dict[folder_path].append(item)
+        elif item.lower().endswith(('.mp3')) and (item not in music_files):
+            music_files.append(item)
+            music_dict[folder_path].append(item)
 
 def layouts():
     file_list_column = [
@@ -38,8 +36,10 @@ def layouts():
     music_player_column = [
         [sg.Text('Choose a song from the list to play or press start to start a random song',
                  justification='center', auto_size_text=True)],
-        [sg.Text('', size=(20, 2), auto_size_text=True,
+        [sg.Text('', size=(20, 1), auto_size_text=True,
                  justification='center', key='-TOUT-')],
+        [sg.Text('', size=(20, 2), auto_size_text=True,
+                 justification='center', key='song name')],
         [
             sg.VSeparator(),
             sg.ProgressBar(max_value=1000,
@@ -60,8 +60,8 @@ def layouts():
         ],
         [
             sg.Checkbox(text='Repeat', key='repeat', enable_events=True),
-            sg.Slider(range=(0, 10), default_value=5, resolution=1, enable_events=True, orientation='h', key='volume'),
-            sg.Checkbox(text="Shuffle", key='shuffle', enable_events=True)
+            sg.Slider(range=(0, 100), default_value=50, resolution=1, enable_events=True, orientation='h', key='volume'),
+            sg.Checkbox(text="Random", key='shuffle', enable_events=True)
         ]
 
     ]
@@ -105,7 +105,42 @@ def search_song(window, event, values):
 def volume_setter(event, values):
     if event == 'volume':
         volume = values['volume']
-        mixer.music.set_volume(volume/10)
+        mixer.music.set_volume(volume/100)
+
+def pause_play_stop(window, event, progress_bar):
+    if event == pause:
+        if mixer.music.get_busy():
+            mixer.music.pause()
+            window[pause].update('Play')
+        else:
+            mixer.music.unpause()
+            window[pause].update('Pause')
+
+    if event == '-STOP-' and mixer.music.get_busy():
+        progress_bar.UpdateBar(0)
+        mixer.music.stop()
+        thread_event.set()
+
+def song_mixer(song):
+    song_details = [(key, song) for key, value in music_dict.items() if song in value]
+    mixer.music.load(os.path.join(
+        song_details[0][0], song_details[0][1]))
+    mixer.music.set_volume(0.5)
+    mixer.music.play()
+    song_length = mixer.Sound(os.path.join(
+        song_details[0][0], song_details[0][1])).get_length()
+    return song_length
+
+def shuffle(window, event, values):
+    if event == 'shuffle':
+        shuffle = values['shuffle']
+        if shuffle:
+            try:
+                song = random.choice(music_files)
+                _song_length = song_mixer(song)
+                window['song name'].update(song)
+            except IndexError:
+                window['song name'].update('load music')
 
 def player_loop(window):
     progress_bar = window['progressbar']
@@ -114,41 +149,30 @@ def player_loop(window):
         load_files(window, event, values)
         search_song(window, event, values)
         if event == file_list:
-            song = values[file_list][0]
-            window['-TOUT-'].update(song)
-            song_details = [(key, song) for key, value in music_dict.items() if song in value]
-            mixer.music.load(os.path.join(
-                song_details[0][0], song_details[0][1]))
-            mixer.music.set_volume(0.5)
-            mixer.music.play()
-            song_length = mixer.Sound(os.path.join(
-                song_details[0][0], song_details[0][1])).get_length()
-            progress_bar.update(0, int(song_length))
-            thread_event.clear()
-            progress_bar_thread = Thread(target=progressbar_update, args=(progress_bar, ), daemon=True)
-            progress_bar_thread.start()
+            try:
+                song = values[file_list][0]
+                window['song name'].update(song)
+                song_length = song_mixer(song)
+                progress_bar.update(0, int(song_length))
+                thread_event.clear()
+                progress_bar_thread = Thread(target=progressbar_update, args=(progress_bar, ), daemon=True)
+                progress_bar_thread.start()
+            except IndexError:
+                pass
         
         volume_setter(event, values)
-        if event == pause:
-            if mixer.music.get_busy():
-                mixer.music.pause()
-                window[pause].update('Play')
-            else:
-                mixer.music.unpause()
-                window[pause].update('Pause')
-
-        if event == '-STOP-' and mixer.music.get_busy():
-            progress_bar.UpdateBar(0)
-            mixer.music.stop()
-            thread_event.set()
+        pause_play_stop(window, event, progress_bar)
 
         if event == '-RESTART-':
             try:
                 mixer.music.play()
             except (error, UnboundLocalError):
-                window['-TOUT-'].update(play_music)
+                window['song name'].update(play_music)
+        
+        shuffle(window, event, values)
                 
         if event in (sg.WIN_CLOSED, 'Exit'):
+            thread_event.set()
             break
 
 
@@ -156,6 +180,6 @@ if __name__ == '__main__':
     mixer.init()
     sg.theme('Dark')
     layout = layouts()
-    window = sg.Window('Music Player', layout, location=(400, 100), element_justification='center')
+    window = sg.Window('Music Player', layout, location=(400, 100), element_justification='center', resizable=True,)
     player_loop(window)
     window.close()
