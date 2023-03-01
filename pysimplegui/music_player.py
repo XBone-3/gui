@@ -93,6 +93,12 @@ def progressbar_update(progress_bar):
             i += 1
         if thread_event.is_set():
             break
+    
+def search_song(window, event, values):
+    if event == 'search':
+        search_str = values['search']
+        new_music_list = [song for song in music_files if search_str.lower() in song.lower()]
+        window[file_list].update(new_music_list)
 
 
 def player_loop(window):
@@ -100,10 +106,10 @@ def player_loop(window):
     progress_bar = window['progressbar']
     while True:
         event, values = window.read(timeout=20)
-        if event == sg.WIN_CLOSED or event == 'Exit':
+        if event in (sg.WIN_CLOSED, 'Exit'):
             break
         load_files(window, event, values)
-
+        search_song(window, event, values)
         if event == file_list:
             song = values[file_list][0]
             window['-TOUT-'].update(song)
@@ -145,9 +151,6 @@ def player_loop(window):
                 mixer.music.play()
             except (error, UnboundLocalError):
                 window['-TOUT-'].update(play_music)
-
-        
-        
 
 
 if __name__ == '__main__':
