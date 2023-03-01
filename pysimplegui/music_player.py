@@ -87,12 +87,9 @@ def load_files(window, event, values):
         window['-TOUT-'].update(f'{len(music_files)} songs found')
 
 def progressbar_update(progress_bar):
-    i = 0
     while True:
         if mixer.music.get_busy():
-            progress_bar.UpdateBar(i)
-            time.sleep(1)
-            i += 1
+            progress_bar.UpdateBar(mixer.music.get_pos()/1000)
         if thread_event.is_set():
             break
     
@@ -117,9 +114,7 @@ def pause_play_stop(window, event, progress_bar):
             window[pause].update('Pause')
 
     if event == '-STOP-' and mixer.music.get_busy():
-        progress_bar.UpdateBar(0)
         mixer.music.stop()
-        thread_event.set()
 
 def song_mixer(song):
     song_details = [(key, song) for key, value in music_dict.items() if song in value]
@@ -144,6 +139,8 @@ def shuffle(window, event, values):
 
 def player_loop(window):
     progress_bar = window['progressbar']
+    progress_bar_thread = Thread(target=progressbar_update, args=(progress_bar, ), daemon=True)
+    progress_bar_thread.start()
     while True:
         event, values = window.read(timeout=20)
         load_files(window, event, values)
@@ -154,9 +151,6 @@ def player_loop(window):
                 window['song name'].update(song)
                 song_length = song_mixer(song)
                 progress_bar.update(0, int(song_length))
-                thread_event.clear()
-                progress_bar_thread = Thread(target=progressbar_update, args=(progress_bar, ), daemon=True)
-                progress_bar_thread.start()
             except IndexError:
                 pass
         
