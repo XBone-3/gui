@@ -2,12 +2,14 @@ import os
 import PySimpleGUI as sg
 from pygame import mixer, error
 import time
+from threading import Thread, Event
 
 music_dict = {}
 music_files = []
 play_music = 'Player must be playing a music'
 file_list = '-FILE_LIST-'
 pause = '-PAUSE-'
+thread_event = Event()
 
 def music_list(folder_path):
     items = os.listdir(folder_path)
@@ -71,7 +73,7 @@ def layouts():
             sg.VSeparator(),
             sg.Column(music_player_column, element_justification='center')
         ],
-        [sg.Button(button_text='Exit', button_color='blue')]
+        [sg.Button(button_text='Exit', button_color='red')]
     ]
     return layout
 
@@ -82,15 +84,25 @@ def load_files(window, event, values):
         window[file_list].update(music_files)
         window['-TOUT-'].update(f'{len(music_files)} songs found')
 
+def progressbar_update(progress_bar):
+    i = 0
+    while True:
+        if mixer.music.get_busy():
+            progress_bar.UpdateBar(i)
+            time.sleep(1)
+            i += 1
+        if thread_event.is_set():
+            break
+
 
 def player_loop(window):
+    i = 0
+    progress_bar = window['progressbar']
     while True:
         event, values = window.read(timeout=20)
         if event == sg.WIN_CLOSED or event == 'Exit':
             break
         load_files(window, event, values)
-
-        progress_bar = window['progressbar']
 
         if event == file_list:
             song = values[file_list][0]
@@ -102,8 +114,10 @@ def player_loop(window):
             song_length = mixer.Sound(os.path.join(
                 song_details[0][0], song_details[0][1])).get_length()
             progress_bar.update(0, int(song_length))
+            thread_event.clear()
+            progress_bar_thread = Thread(target=progressbar_update, args=(progress_bar, ), daemon=True)
+            progress_bar_thread.start()
             play = True
-            i = 0
         
         if event == pause:
             try:
@@ -122,26 +136,23 @@ def player_loop(window):
             try:
                 progress_bar.UpdateBar(0)
                 mixer.music.stop()
+                thread_event.set()
             except UnboundLocalError:
                 window['-TOUT-'].update(play_music)
 
         if event == '-RESTART-':
             try:
                 mixer.music.play()
-                i = 0
-                progress_bar.UpdateBar(i)
-            except error:
+            except (error, UnboundLocalError):
                 window['-TOUT-'].update(play_music)
 
-        if mixer.music.get_busy():
-            progress_bar.UpdateBar(i)
-            i += 1
-            time.sleep(1)
+        
+        
 
 
 if __name__ == '__main__':
     mixer.init()
-    sg.theme('DarkAmber')
+    sg.theme('Dark')
     layout = layouts()
     window = sg.Window('Music Player', layout, location=(400, 100), element_justification='center')
     player_loop(window)
