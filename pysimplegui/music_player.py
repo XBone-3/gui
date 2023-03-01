@@ -81,7 +81,7 @@ def main():
     layout = layouts()
     window = sg.Window('Music Player', layout, location=(400, 100))
     while True:
-        event, values = window.read(timeout=10)
+        event, values = window.read(timeout=20)
         if event == sg.WIN_CLOSED:
             break
         if event == '-PATH-':
@@ -100,23 +100,29 @@ def main():
             mixer.music.play()
             song_length = mixer.Sound(os.path.join(
                 song_details[0][0], song_details[0][1])).get_length()
-            progress_bar.update(0, int(song_length))
+            progress_bar.update(0, int(song_length) * 2)
             play = True
             i = 0
          
         if event == '-PAUSE-':
-            if play:
-                mixer.music.pause()
-                window['-PAUSE-'].update('Play')
-                play = False
-            else:
-                mixer.music.unpause()
-                window['-PAUSE-'].update('Pause')
-                play = True
+            try:
+                if play:
+                    mixer.music.pause()
+                    window['-PAUSE-'].update('Play')
+                    play = False
+                else:
+                    mixer.music.unpause()
+                    window['-PAUSE-'].update('Pause')
+                    play = True
+            except UnboundLocalError:
+                window['-TOUT-'].update('Player must be playing a music')
 
         if event == '-STOP-':
-            progress_bar.UpdateBar(0)
-            mixer.music.stop()
+            try:
+                progress_bar.UpdateBar(0)
+                mixer.music.stop()
+            except UnboundLocalError:
+                window['-TOUT-'].update('player must be playing a music')
 
         if event == '-RESTART-':
             try:
@@ -129,7 +135,7 @@ def main():
         if mixer.music.get_busy():
             progress_bar.UpdateBar(i)
             i += 1
-            time.sleep(1)
+            time.sleep(0.5)
 
     window.close()
 
