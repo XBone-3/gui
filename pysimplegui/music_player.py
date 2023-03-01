@@ -4,8 +4,9 @@ from pygame import mixer, error
 import time
 from threading import Thread, Event
 
-music_dict = {}
-music_files = []
+music_dict = dict()
+music_files = list()
+path_tracker = list()
 play_music = 'Player must be playing a music'
 file_list = '-FILE_LIST-'
 pause = '-PAUSE-'
@@ -16,12 +17,13 @@ def music_list(folder_path):
     if folder_path not in music_dict.keys():
         music_dict[folder_path] = []
     for item in items:
-        if os.path.isdir(os.path.join(folder_path, item)):
-            music_list(os.path.join(folder_path, item))
+        destination = os.path.join(folder_path, item)
+        if os.path.isdir(destination):
+            music_list(destination)
         elif item.lower().endswith(('.mp3')):
-            music_files.append(item)
-            music_dict[folder_path].append(item)
-
+            if item not in music_files:
+                music_files.append(item)
+                music_dict[folder_path].append(item)
 
 def layouts():
     file_list_column = [
@@ -57,9 +59,9 @@ def layouts():
                       enable_events=True, key='-RESTART-'),
         ],
         [
-            sg.Radio(text='Repeat', key='repeat', group_id='Radio', enable_events=True),
+            sg.Checkbox(text='Repeat', key='repeat', enable_events=True),
             sg.Slider(range=(0, 10), default_value=5, resolution=1, enable_events=True, orientation='h', key='volume'),
-            sg.Radio(text="Shuffle", key='shuffle',group_id='shufle', enable_events=True)
+            sg.Checkbox(text="Shuffle", key='shuffle', enable_events=True)
         ]
 
     ]
@@ -100,14 +102,15 @@ def search_song(window, event, values):
         new_music_list = [song for song in music_files if search_str.lower() in song.lower()]
         window[file_list].update(new_music_list)
 
+def volume_setter(event, values):
+    if event == 'volume':
+        volume = values['volume']
+        mixer.music.set_volume(volume/10)
 
 def player_loop(window):
-    i = 0
     progress_bar = window['progressbar']
     while True:
         event, values = window.read(timeout=20)
-        if event in (sg.WIN_CLOSED, 'Exit'):
-            break
         load_files(window, event, values)
         search_song(window, event, values)
         if event == file_list:
@@ -116,6 +119,7 @@ def player_loop(window):
             song_details = [(key, song) for key, value in music_dict.items() if song in value]
             mixer.music.load(os.path.join(
                 song_details[0][0], song_details[0][1]))
+            mixer.music.set_volume(0.5)
             mixer.music.play()
             song_length = mixer.Sound(os.path.join(
                 song_details[0][0], song_details[0][1])).get_length()
@@ -123,34 +127,29 @@ def player_loop(window):
             thread_event.clear()
             progress_bar_thread = Thread(target=progressbar_update, args=(progress_bar, ), daemon=True)
             progress_bar_thread.start()
-            play = True
         
+        volume_setter(event, values)
         if event == pause:
-            try:
-                if play:
-                    mixer.music.pause()
-                    window[pause].update('Play')
-                    play = False
-                else:
-                    mixer.music.unpause()
-                    window[pause].update('Pause')
-                    play = True
-            except UnboundLocalError:
-                window['-TOUT-'].update(play_music)
+            if mixer.music.get_busy():
+                mixer.music.pause()
+                window[pause].update('Play')
+            else:
+                mixer.music.unpause()
+                window[pause].update('Pause')
 
-        if event == '-STOP-':
-            try:
-                progress_bar.UpdateBar(0)
-                mixer.music.stop()
-                thread_event.set()
-            except UnboundLocalError:
-                window['-TOUT-'].update(play_music)
+        if event == '-STOP-' and mixer.music.get_busy():
+            progress_bar.UpdateBar(0)
+            mixer.music.stop()
+            thread_event.set()
 
         if event == '-RESTART-':
             try:
                 mixer.music.play()
             except (error, UnboundLocalError):
                 window['-TOUT-'].update(play_music)
+                
+        if event in (sg.WIN_CLOSED, 'Exit'):
+            break
 
 
 if __name__ == '__main__':
@@ -159,5 +158,4 @@ if __name__ == '__main__':
     layout = layouts()
     window = sg.Window('Music Player', layout, location=(400, 100), element_justification='center')
     player_loop(window)
-
     window.close()
