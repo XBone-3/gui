@@ -9,7 +9,6 @@ music_files = list()
 path_tracker = list()
 play_music = 'Player must be playing a music'
 file_list = '-FILE_LIST-'
-pause = '-PAUSE-'
 song_name = 'song name'
 start_time = 'start time'
 end_time = 'end time'
@@ -62,13 +61,10 @@ def layouts():
         [sg.HSeparator(pad=10)],
         [
             button('Previous'),
-            sg.Button(button_text='Pause', auto_size_button=True,
-                      key='-PAUSE-', enable_events=True),
+            button('Pause'),
             button('Play'),
-            sg.Button(button_text='Stop', auto_size_button=True,
-                      enable_events=True, key='-STOP-'),
-            sg.Button(button_text='Restart', auto_size_button=True,
-                      enable_events=True, key='-RESTART-'),
+            button('Stop'),
+            button('Restart'),
             button('Next')
         ],
         [
@@ -83,12 +79,19 @@ def layouts():
             sg.Text(text='Search: '),
             sg.In(size=(50, 1), justification='center', key='search', enable_events=True)
         ],
+        # [sg.HSeparator()],
         [
+            # sg.VSeparator(),
             sg.Column(file_list_column, element_justification='center'),
-            sg.VSeparator(),
-            sg.Column(music_player_column, element_justification='center')
+            # sg.VSeparator(),
+            sg.Column(music_player_column, element_justification='center'),
+            # sg.VSeparator()
         ],
-        [sg.Button(button_text='Exit', button_color='red')]
+        [sg.HSeparator()],
+        [
+            sg.Button(button_text='Exit', button_color='red'),
+            sg.Text('Made by XBone-3', auto_size_text=True, justification='right', text_color='black', background_color='white',)
+        ]
     ]
     return layout
 
@@ -118,16 +121,16 @@ def song_mixer(window, song):
     return song_length, music_files.index(song)
 
 def pause_play_stop(window, event):
-    if event == pause and mixer.music.get_busy():
+    if event == 'Pause' and mixer.music.get_busy():
             mixer.music.pause()
 
     if event == 'Play':        
         mixer.music.unpause()
 
-    if event == '-STOP-' and mixer.music.get_busy():
+    if event == 'Stop' and mixer.music.get_busy():
         mixer.music.stop()
     
-    if event == '-RESTART-':
+    if event == 'Restart':
         try:
             mixer.music.play()
         except (error, UnboundLocalError):
@@ -215,6 +218,6 @@ if __name__ == '__main__':
     mixer.init()
     sg.theme('Dark')
     layout = layouts()
-    window = sg.Window('Music Player', layout, location=(400, 100), element_justification='center', resizable=True, finalize=True)
+    window = sg.Window(title='Music Player', layout=layout, location=(400, 100), element_justification='center', resizable=False, finalize=True, auto_size_buttons=True, auto_size_text=True)
     player_loop(window)
     window.close()
