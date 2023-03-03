@@ -12,6 +12,8 @@ file_list = '-FILE_LIST-'
 song_name = 'song name'
 start_time = 'start time'
 end_time = 'end time'
+AUTHOR = 'XBone-3'
+GitHub = 'github.com/XBone-3'
 thread_event = Event()
 
 def list_music_files(folder_path):
@@ -28,7 +30,7 @@ def list_music_files(folder_path):
             
 
 def button(text):
-    return sg.Button(button_text=text, enable_events=True, auto_size_button=True, key=text)
+    return sg.Button(button_text=text, auto_size_button=True, key=text)
 
 def layouts():
     file_list_column = [
@@ -48,7 +50,7 @@ def layouts():
         [sg.Text('', size=(20, 2), auto_size_text=True,
                  justification='center', key=song_name)],
         [
-            sg.Text('00:00', auto_size_text=True, enable_events=True, size=(6,1), key=start_time, justification='right'),
+            sg.Text('00:00', auto_size_text=True, size=(6,1), key=start_time, justification='right'),
             sg.VSeparator(),
             sg.ProgressBar(max_value=1000,
                            size=(20, 10),
@@ -56,7 +58,7 @@ def layouts():
                            key='progressbar'
                            ),
             sg.VSeparator(),
-            sg.Text('00:00', auto_size_text=True, enable_events=True, size=(6,1), key=end_time, justification='left')
+            sg.Text('00:00', auto_size_text=True, size=(6,1), key=end_time, justification='left')
         ],
         [sg.HSeparator(pad=10)],
         [
@@ -82,15 +84,15 @@ def layouts():
         # [sg.HSeparator()],
         [
             # sg.VSeparator(),
-            sg.Column(file_list_column, element_justification='center'),
-            # sg.VSeparator(),
-            sg.Column(music_player_column, element_justification='center'),
+            sg.Column(file_list_column, element_justification='center', vertical_alignment='center'),
+            sg.VSeparator(),
+            sg.Column(music_player_column, element_justification='center', vertical_alignment='center'),
             # sg.VSeparator()
         ],
         [sg.HSeparator()],
         [
-            sg.Button(button_text='Exit', button_color='red'),
-            sg.Text('Made by XBone-3', auto_size_text=True, justification='right', text_color='black', background_color='white',)
+            sg.Button(button_text='Exit', button_color='Black'),
+            sg.Text('Made by XBone-3', auto_size_text=True, justification='right', text_color='black', background_color='white', enable_events=True, key=AUTHOR)
         ]
     ]
     return layout
@@ -120,7 +122,7 @@ def song_mixer(window, song):
     window[end_time].update(f'{int(song_length / 60)}:{int(song_length % 60)}')
     return song_length, music_files.index(song)
 
-def pause_play_stop(window, event):
+def pause_play_stop(event):
     if event == 'Pause' and mixer.music.get_busy():
             mixer.music.pause()
 
@@ -133,8 +135,8 @@ def pause_play_stop(window, event):
     if event == 'Restart':
         try:
             mixer.music.play()
-        except (error, UnboundLocalError):
-            window[song_name].update(play_music)
+        except error:
+            pass
 
 def progressbar_update(progress_bar):
     while True:
@@ -149,14 +151,14 @@ def volume_setter(event, values):
         mixer.music.set_volume(volume/100)
 
 def next_previous(window, event, current_song_index):
-    if event == 'Next':
+    if event == 'Next' and len(music_files) > 0:
         if current_song_index >= len(music_files) - 1:
             current_song_index = -1
         song = music_files[current_song_index + 1]
         _song_length, current_song_index = song_mixer(window, song)
         window[song_name].update(song)
         return current_song_index
-    if event == 'Previous':
+    if event == 'Previous' and len(music_files) > 0:
         if current_song_index <= 0:
             current_song_index = len(music_files)
         song = music_files[current_song_index - 1]
@@ -168,14 +170,11 @@ def next_previous(window, event, current_song_index):
 def shuffle(window, event, values, current_song_index):
     if event == 'shuffle':
         shuffle = values['shuffle']
-        if shuffle:
-            try:
-                song = random.choice(music_files)
-                _song_length, curr_song_index = song_mixer(window, song)
-                window[song_name].update(song)
-                return curr_song_index
-            except IndexError:
-                window[song_name].update('load music')
+        if shuffle and len(music_files) > 0:
+            song = random.choice(music_files)
+            _song_length, curr_song_index = song_mixer(window, song)
+            window[song_name].update(song)
+            return curr_song_index
     return current_song_index
 
 def update_time(window):
@@ -184,6 +183,10 @@ def update_time(window):
         seconds = int(current_pos / 1000)
         stringify_pos = f'{seconds // 60}:{seconds % 60}'
         window[start_time].update(stringify_pos)
+
+def popup(event):
+    if event == AUTHOR:
+        sg.popup(f"Made with love by {AUTHOR}\n\nYou can follow me at {GitHub}", title="Author")
 
 def player_loop(window):
     progress_bar = window['progressbar']
@@ -194,20 +197,18 @@ def player_loop(window):
         event, values = window.read(timeout=20)
         load_files(window, event, values)
         search_song(window, event, values)
-        if event == file_list:
-            try:
-                song = values[file_list][0]
-                window[song_name].update(song)
-                song_length, curr_song_index = song_mixer(window, song)
-                progress_bar.update(0, int(song_length))
-            except IndexError:
-                pass
+        if event == file_list and len(music_files) > 0:
+            song = values[file_list][0]
+            window[song_name].update(song)
+            song_length, curr_song_index = song_mixer(window, song)
+            progress_bar.update(0, int(song_length))
         
         volume_setter(event, values)
-        pause_play_stop(window, event)
+        pause_play_stop(event)
         update_time(window)
         curr_song_index = next_previous(window, event, curr_song_index)
         curr_song_index = shuffle(window, event, values, curr_song_index)
+        popup(event)
                 
         if event in (sg.WIN_CLOSED, 'Exit'):
             thread_event.set()
